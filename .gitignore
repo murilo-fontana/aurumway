@@ -1,0 +1,14 @@
+**/target/
+**/.DS_Store
+**/*.env
+**/.env.*
+**/node_modules/
+**/*.log
+**/*.iml
+**/.idea/
+**/.vscode/
+**/.settings/
+**/.classpath
+**/.project
+**/.factorypath
+**/mvnw.cmd

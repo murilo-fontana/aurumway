@@ -1,0 +1,1 @@
+ALTER TABLE invoices ADD COLUMN refunded_amount DECIMAL(19, 2) NOT NULL DEFAULT 0;
