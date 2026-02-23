@@ -10,7 +10,6 @@ import dev.murilofontana.aurumway.billing.domain.valueobject.InvoiceLineId;
 import dev.murilofontana.aurumway.billing.domain.valueobject.InvoiceStatus;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public final class InvoicePersistenceMapper {
 

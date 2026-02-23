@@ -1,6 +1,5 @@
 package dev.murilofontana.aurumway.billing.domain.model;
 
-import dev.murilofontana.aurumway.billing.domain.valueobject.ReconciliationStatus;
 import dev.murilofontana.aurumway.billing.domain.valueobject.StatementId;
 import dev.murilofontana.aurumway.billing.domain.valueobject.StatementStatus;
 

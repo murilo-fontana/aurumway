@@ -2,8 +2,6 @@ package dev.murilofontana.aurumway.billing.adapter.out.persistence.entity;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
 
 import java.time.Instant;
 import java.util.ArrayList;
