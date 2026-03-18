@@ -3,6 +3,7 @@ package dev.murilofontana.aurumway.contracts.adapter.in.api.controller;
 import dev.murilofontana.aurumway.contracts.config.JwtService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -16,25 +17,28 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.Set;
+
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
-    private static final java.util.Set<String> ALLOWED_TENANTS = java.util.Set.of(
-            "acme-corp", "globex-inc", "default"
-    );
-
+    private final Set<String> allowedTenants;
     private final AuthenticationManager authManager;
     private final JwtService jwtService;
 
-    public AuthController(AuthenticationManager authManager, JwtService jwtService) {
+    public AuthController(AuthenticationManager authManager,
+                          JwtService jwtService,
+                          @Value("${app.allowed-tenants}") Set<String> allowedTenants) {
         this.authManager = authManager;
         this.jwtService = jwtService;
+        this.allowedTenants = allowedTenants;
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody @Valid LoginRequest request) {
-        if (!ALLOWED_TENANTS.contains(request.tenantId())) {
+        if (!allowedTenants.contains(request.tenantId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Invalid tenant: " + request.tenantId()));
         }
@@ -58,5 +62,5 @@ public class AuthController {
 
     public record LoginRequest(@NotBlank String username, @NotBlank String password, @NotBlank String tenantId) {}
 
-    public record LoginResponse(String token, String username, java.util.List<String> roles, String tenantId) {}
+    public record LoginResponse(String token, String username, List<String> roles, String tenantId) {}
 }
