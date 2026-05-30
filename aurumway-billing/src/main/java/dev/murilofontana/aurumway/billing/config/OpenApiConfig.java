@@ -1,0 +1,31 @@
+package dev.murilofontana.aurumway.billing.config;
+
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class OpenApiConfig {
+
+    private static final String SECURITY_SCHEME = "bearerAuth";
+
+    @Bean
+    public OpenAPI billingOpenAPI() {
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Aurumway Billing API")
+                        .version("v1")
+                        .description("Customers, invoice lifecycle, double-entry ledger, reports and bank-statement "
+                                + "reconciliation. Authenticate via POST /auth/login and use the returned JWT as a Bearer token."))
+                .components(new Components().addSecuritySchemes(SECURITY_SCHEME,
+                        new SecurityScheme()
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")))
+                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME));
+    }
+}

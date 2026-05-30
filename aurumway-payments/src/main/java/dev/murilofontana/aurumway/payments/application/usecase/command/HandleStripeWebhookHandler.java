@@ -1,17 +1,25 @@
 package dev.murilofontana.aurumway.payments.application.usecase.command;
 
 import dev.murilofontana.aurumway.payments.application.port.in.HandleStripeWebhookUseCase;
+import dev.murilofontana.aurumway.payments.application.port.out.PaymentEventPublisherPort;
 import dev.murilofontana.aurumway.payments.application.port.out.PaymentRepositoryPort;
+import dev.murilofontana.aurumway.payments.application.port.out.PaymentSucceededEvent;
+import dev.murilofontana.aurumway.payments.config.TenantContext;
+import dev.murilofontana.aurumway.payments.domain.model.Payment;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 @Service
 public class HandleStripeWebhookHandler implements HandleStripeWebhookUseCase {
 
     private final PaymentRepositoryPort repository;
+    private final PaymentEventPublisherPort eventPublisher;
 
-    public HandleStripeWebhookHandler(PaymentRepositoryPort repository) {
+    public HandleStripeWebhookHandler(PaymentRepositoryPort repository, PaymentEventPublisherPort eventPublisher) {
         this.repository = repository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Override
@@ -21,12 +29,33 @@ public class HandleStripeWebhookHandler implements HandleStripeWebhookUseCase {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "No payment found for PaymentIntent: " + paymentIntentId));
 
-        switch (eventType) {
-            case "payment_intent.succeeded" -> payment.markSucceeded();
-            case "payment_intent.payment_failed" -> payment.markFailed();
-            default -> { return; }
+        var tenantId = repository.findTenantIdByStripePaymentIntentId(paymentIntentId).orElse(null);
+        if (tenantId != null) {
+            TenantContext.setCurrentTenant(tenantId);
         }
 
-        repository.save(payment);
+        switch (eventType) {
+            case "payment_intent.succeeded" -> {
+                payment.markSucceeded();
+                repository.save(payment);
+                eventPublisher.publishPaymentSucceeded(toEvent(payment, tenantId));
+            }
+            case "payment_intent.payment_failed" -> {
+                payment.markFailed();
+                repository.save(payment);
+            }
+            default -> { }
+        }
+    }
+
+    private PaymentSucceededEvent toEvent(Payment payment, String tenantId) {
+        return new PaymentSucceededEvent(
+                payment.id().value(),
+                payment.externalReference(),
+                payment.money().amount(),
+                payment.money().currency(),
+                tenantId,
+                payment.stripePaymentIntentId(),
+                Instant.now());
     }
 }

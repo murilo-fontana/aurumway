@@ -1,5 +1,8 @@
 package dev.murilofontana.aurumway.payments.adapter.out.integration.stripe.client;
 
+import com.stripe.exception.ApiConnectionException;
+import com.stripe.exception.ApiException;
+import com.stripe.exception.RateLimitException;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.Refund;
@@ -8,12 +11,16 @@ import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.RefundCreateParams;
 import dev.murilofontana.aurumway.payments.application.port.out.StripePaymentPort;
 import dev.murilofontana.aurumway.payments.common.money.Money;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.springframework.stereotype.Component;
 
 @Component
 public class StripePaymentAdapter implements StripePaymentPort {
 
     @Override
+    @Retry(name = "stripe")
+    @CircuitBreaker(name = "stripe")
     public StripePaymentIntentResult createPaymentIntent(Money money, String externalReference, String idempotencyKey) {
         try {
             var params = PaymentIntentCreateParams.builder()
@@ -37,11 +44,13 @@ public class StripePaymentAdapter implements StripePaymentPort {
 
             return new StripePaymentIntentResult(paymentIntent.getId(), paymentIntent.getClientSecret());
         } catch (StripeException e) {
-            throw new StripeIntegrationException("Failed to create PaymentIntent: " + e.getMessage(), e);
+            throw translate("Failed to create PaymentIntent", e);
         }
     }
 
     @Override
+    @Retry(name = "stripe")
+    @CircuitBreaker(name = "stripe")
     public StripeRefundResult createRefund(String paymentIntentId, long amountInMinorUnits, String idempotencyKey) {
         try {
             var params = RefundCreateParams.builder()
@@ -56,8 +65,22 @@ public class StripePaymentAdapter implements StripePaymentPort {
             var refund = Refund.create(params, requestOptions);
             return new StripeRefundResult(refund.getId(), refund.getStatus());
         } catch (StripeException e) {
-            throw new StripeIntegrationException("Failed to create Refund: " + e.getMessage(), e);
+            throw translate("Failed to create Refund", e);
         }
+    }
+
+    private RuntimeException translate(String context, StripeException e) {
+        String message = context + ": " + e.getMessage();
+        if (isTransient(e)) {
+            return new StripeUnavailableException(message, e);
+        }
+        return new StripeIntegrationException(message, e);
+    }
+
+    private boolean isTransient(StripeException e) {
+        return e instanceof ApiConnectionException
+                || e instanceof ApiException
+                || e instanceof RateLimitException;
     }
 
     private long toMinorUnits(Money money) {

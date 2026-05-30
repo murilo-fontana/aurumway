@@ -25,6 +25,11 @@ public interface JpaInvoiceRepository extends JpaRepository<InvoiceEntity, Strin
            nativeQuery = true)
     List<InvoiceEntity> findWithFilters(String tenantId, String status, String customerId, Instant fromDate, Instant toDate);
 
+    @Query(value = "SELECT * FROM invoices i WHERE i.tenant_id = :tenantId AND " +
+           "i.status = 'SENT' AND i.due_date < :asOf",
+           nativeQuery = true)
+    List<InvoiceEntity> findOverdueCandidates(String tenantId, java.time.LocalDate asOf);
+
     @Query(value = "SELECT nextval('invoice_number_seq')", nativeQuery = true)
     long nextInvoiceNumber();
 }

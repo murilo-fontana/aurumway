@@ -1,5 +1,6 @@
 package dev.murilofontana.aurumway.contracts.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,13 +18,24 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.time.Duration;
+
 @Configuration
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtFilter;
+    private final boolean rateLimitEnabled;
+    private final long rateLimitCapacity;
+    private final long rateLimitRefillSeconds;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtFilter) {
+    public SecurityConfig(JwtAuthenticationFilter jwtFilter,
+                          @Value("${rate-limit.enabled:true}") boolean rateLimitEnabled,
+                          @Value("${rate-limit.capacity:100}") long rateLimitCapacity,
+                          @Value("${rate-limit.refill-period-seconds:60}") long rateLimitRefillSeconds) {
         this.jwtFilter = jwtFilter;
+        this.rateLimitEnabled = rateLimitEnabled;
+        this.rateLimitCapacity = rateLimitCapacity;
+        this.rateLimitRefillSeconds = rateLimitRefillSeconds;
     }
 
     @Bean
@@ -32,10 +44,11 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/health/**").permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
 
                         .requestMatchers(HttpMethod.GET, "/contracts/**").hasAnyRole("ADMIN", "FINANCE", "VIEWER")
                         .requestMatchers(HttpMethod.POST, "/contracts").hasRole("ADMIN")
@@ -54,6 +67,9 @@ public class SecurityConfig {
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(
+                        new RateLimitFilter(rateLimitEnabled, rateLimitCapacity, Duration.ofSeconds(rateLimitRefillSeconds)),
+                        JwtAuthenticationFilter.class)
                 .build();
     }
 

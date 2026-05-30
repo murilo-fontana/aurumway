@@ -58,6 +58,14 @@ public class InvoiceRepositoryAdapter implements InvoiceRepositoryPort {
     }
 
     @Override
+    public List<Invoice> findOverdueCandidates(java.time.LocalDate asOf) {
+        tenantFilter.enableTenantFilter();
+        return jpa.findOverdueCandidates(TenantContext.getCurrentTenant(), asOf).stream()
+                .map(InvoicePersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public String nextInvoiceNumber(int year) {
         long seq = jpa.nextInvoiceNumber();
         return "INV-%d-%06d".formatted(year, seq);

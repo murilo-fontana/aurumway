@@ -72,7 +72,8 @@ public class AuditAspect {
                 return method.invoke(result).toString();
             } catch (Exception ignored) {}
         }
-        return result.toString();
+        // Batch operations (e.g. invoice generation) have no single entity id.
+        return "batch";
     }
 
     private record AuditMeta(AuditAction action, String entityType) {}

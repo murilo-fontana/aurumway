@@ -1,5 +1,6 @@
 package dev.murilofontana.aurumway.payments.adapter.out.persistence;
 
+import dev.murilofontana.aurumway.payments.adapter.out.persistence.entity.PaymentEntity;
 import dev.murilofontana.aurumway.payments.adapter.out.persistence.mapper.PaymentPersistenceMapper;
 import dev.murilofontana.aurumway.payments.adapter.out.persistence.repository.JpaPaymentRepository;
 import dev.murilofontana.aurumway.payments.application.port.out.PaymentRepositoryPort;
@@ -48,5 +49,12 @@ public class PaymentRepositoryAdapter implements PaymentRepositoryPort {
         // No tenant filter - webhooks are cross-tenant
         return jpa.findByStripePaymentIntentId(stripePaymentIntentId)
                 .map(PaymentPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<String> findTenantIdByStripePaymentIntentId(String stripePaymentIntentId) {
+        // No tenant filter - webhooks are cross-tenant
+        return jpa.findByStripePaymentIntentId(stripePaymentIntentId)
+                .map(PaymentEntity::getTenantId);
     }
 }

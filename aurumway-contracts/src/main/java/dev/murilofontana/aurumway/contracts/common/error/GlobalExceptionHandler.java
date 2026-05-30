@@ -1,6 +1,7 @@
 package dev.murilofontana.aurumway.contracts.common.error;
 
 import dev.murilofontana.aurumway.contracts.application.usecase.query.ContractNotFoundException;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -8,6 +9,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.RestClientException;
 
 import java.util.stream.Collectors;
 
@@ -29,6 +31,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidOperationException.class)
     public ProblemDetail handleConflict(InvalidOperationException ex) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    @ExceptionHandler(CallNotPermittedException.class)
+    public ProblemDetail handleCircuitOpen(CallNotPermittedException ex) {
+        log.warn("Billing service circuit open: {}", ex.getMessage());
+        var problem = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE,
+                "Billing service temporarily unavailable, please retry shortly");
+        problem.setProperty("retryable", true);
+        return problem;
+    }
+
+    @ExceptionHandler(RestClientException.class)
+    public ProblemDetail handleDownstreamError(RestClientException ex) {
+        log.warn("Billing service call failed: {}", ex.getMessage());
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY,
+                "Billing service call failed");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

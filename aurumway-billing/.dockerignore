@@ -1,0 +1,13 @@
+target/
+extracted/
+*.iml
+.idea/
+.vscode/
+.git/
+.gitignore
+.env
+*.env
+*.log
+README.md
+Dockerfile
+.dockerignore

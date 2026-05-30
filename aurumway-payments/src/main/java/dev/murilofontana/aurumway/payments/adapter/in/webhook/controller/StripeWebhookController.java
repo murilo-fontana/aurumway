@@ -6,6 +6,7 @@ import com.stripe.model.PaymentIntent;
 import com.stripe.model.StripeObject;
 import com.stripe.net.Webhook;
 import dev.murilofontana.aurumway.payments.application.port.in.HandleStripeWebhookUseCase;
+import dev.murilofontana.aurumway.payments.config.TenantContext;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,7 +33,8 @@ public class StripeWebhookController {
     @PostConstruct
     void validateConfig() {
         if (webhookSecret == null || webhookSecret.isBlank()) {
-            throw new IllegalStateException("stripe.webhook-secret must be configured");
+            log.warn("stripe.webhook-secret is not configured; the Stripe webhook endpoint will reject all requests "
+                    + "until STRIPE_WEBHOOK_SECRET is set");
         }
     }
 
@@ -40,6 +42,11 @@ public class StripeWebhookController {
     public ResponseEntity<String> handle(
             @RequestBody String payload,
             @RequestHeader("Stripe-Signature") String sigHeader) {
+
+        if (webhookSecret == null || webhookSecret.isBlank()) {
+            log.error("Rejecting Stripe webhook: stripe.webhook-secret is not configured");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body("Webhook not configured");
+        }
 
         Event event;
         try {
@@ -53,7 +60,11 @@ public class StripeWebhookController {
         if (type.equals("payment_intent.succeeded") || type.equals("payment_intent.payment_failed")) {
             var paymentIntent = extractPaymentIntent(event);
             if (paymentIntent != null) {
-                useCase.execute(paymentIntent.getId(), type);
+                try {
+                    useCase.execute(paymentIntent.getId(), type);
+                } finally {
+                    TenantContext.clear();
+                }
             }
         }
 
