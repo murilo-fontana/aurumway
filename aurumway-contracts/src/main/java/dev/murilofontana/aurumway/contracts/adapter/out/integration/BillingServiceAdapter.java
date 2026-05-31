@@ -35,6 +35,7 @@ public class BillingServiceAdapter implements BillingServicePort {
         return restClient.post()
                 .uri("/invoices")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .header("Idempotency-Key", request.idempotencyKey())
                 .body(request)
                 .retrieve()
                 .body(CreateInvoiceResponse.class);

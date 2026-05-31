@@ -39,11 +39,13 @@ public class InvoiceController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public CreateInvoiceResponse create(@Valid @RequestBody CreateInvoiceRequest request) {
+    public CreateInvoiceResponse create(
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            @Valid @RequestBody CreateInvoiceRequest request) {
         var lines = request.lines().stream()
                 .map(l -> new CreateInvoiceCommand.LineItem(l.description(), l.quantity(), l.unitPrice(), l.taxRate()))
                 .toList();
-        var cmd = new CreateInvoiceCommand(request.customerId(), request.currency(), lines);
+        var cmd = new CreateInvoiceCommand(request.customerId(), request.currency(), lines, idempotencyKey);
         var result = createUseCase.execute(cmd);
         return new CreateInvoiceResponse(result.invoiceId(), result.status(), result.totalAmount(), result.currency());
     }

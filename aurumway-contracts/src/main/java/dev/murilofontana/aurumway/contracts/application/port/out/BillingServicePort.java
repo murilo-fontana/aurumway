@@ -7,7 +7,7 @@ public interface BillingServicePort {
 
     CreateInvoiceResponse createInvoice(CreateInvoiceRequest request);
 
-    record CreateInvoiceRequest(String customerId, String currency, List<LineItem> lines) {}
+    record CreateInvoiceRequest(String customerId, String currency, List<LineItem> lines, String idempotencyKey) {}
 
     record LineItem(String description, int quantity, BigDecimal unitPrice, BigDecimal taxRate) {}
 

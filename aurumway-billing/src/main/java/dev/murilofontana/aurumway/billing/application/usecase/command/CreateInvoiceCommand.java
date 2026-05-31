@@ -7,7 +7,8 @@ import java.util.Objects;
 public record CreateInvoiceCommand(
         String customerId,
         String currency,
-        List<LineItem> lines
+        List<LineItem> lines,
+        String idempotencyKey
 ) {
     public CreateInvoiceCommand {
         Objects.requireNonNull(customerId, "customerId is required");

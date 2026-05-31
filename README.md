@@ -270,7 +270,7 @@ Contract:  DRAFT → ACTIVE ⇄ SUSPENDED
 - **Multi-tenancy** — every tenant-owned table has a `tenant_id`; `TenantContext` (ThreadLocal) is populated from the JWT by `JwtAuthenticationFilter`, and a Hibernate `tenantFilter` scopes all reads. Invoice/journal numbers are unique per `(tenant_id, number)`.
 - **Audit trail** — an `@Around` AOP aspect records an immutable `audit_events` row after each successful command handler (actor, action, entity, payload, timestamp). Queryable via `GET /audit-events` (ADMIN).
 - **Append-only ledger** — billing posts balanced double-entry journal entries (`INVOICE_ISSUED`, `PAYMENT_RECEIVED`, `INVOICE_CANCELLED`, `REFUND_ISSUED`); corrections are reversing entries, never updates/deletes.
-- **Idempotency** — payments persists responses for `POST /payment-intents` keyed on `Idempotency-Key`; refunds forward the key to Stripe.
+- **Idempotency** — payments persists responses for `POST /payment-intents` keyed on `Idempotency-Key` (refunds forward the key to Stripe). Billing's `POST /invoices` accepts an optional `Idempotency-Key` header: the key→invoice mapping is written **in the same transaction** as the invoice, so a replay returns the original invoice and never duplicates. Contracts uses a deterministic key (`contractId:billingDate`) when generating recurring invoices, which makes both retries *and* a re-run of the scheduler after a crash safe.
 
 ---
 
@@ -343,7 +343,7 @@ Key design points:
 - **Exhaustion / open circuit** surfaces as `503 Service Unavailable` with `"retryable": true` (payments) / `502 Bad Gateway` for other downstream errors (contracts), instead of a generic 500.
 - **Observability:** each instance exports `resilience4j.circuitbreaker.*` and `resilience4j.retry.*` metrics (tagged `name`, `application`) to Prometheus.
 
-> Caveat: billing's `POST /invoices` is not yet idempotent, so a retry after a read timeout could in theory create a duplicate invoice. A follow-up is to pass an idempotency key to billing; until then retries are limited to clearly-transient errors.
+> Note: billing's `POST /invoices` is idempotent (see [Cross-cutting concerns](#cross-cutting-concerns)), so the contracts → billing retry is safe even on read timeouts — the deterministic `Idempotency-Key` guarantees at most one invoice per contract billing period.
 
 ## Health checks
 
@@ -419,5 +419,5 @@ Each module follows the same package structure under `src/main/java/dev/murilofo
 
 Production-readiness items already done: tests, Dockerfiles, dependency health checks, CI, OpenAPI/Swagger, observability (metrics/tracing/correlation IDs), async messaging (RabbitMQ), scheduled jobs (recurring invoices, mark-overdue, outbox relay), rate limiting, resilience (retry / circuit breaker on Stripe and inter-service calls). Planned next:
 
-- [ ] Idempotency key on billing `POST /invoices` (so contract-side retries are fully safe)
 - [ ] Distributed rate-limit backend (Redis) for multi-replica deployments
+- [ ] Real identity provider (OIDC) to replace the in-memory users

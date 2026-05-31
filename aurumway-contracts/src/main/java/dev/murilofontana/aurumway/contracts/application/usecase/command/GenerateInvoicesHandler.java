@@ -50,8 +50,9 @@ public class GenerateInvoicesHandler implements GenerateInvoicesUseCase {
                         item.description(), item.quantity(), item.unitPrice(), item.taxRate()))
                 .toList();
 
+        var idempotencyKey = contract.id().value() + ":" + contract.nextBillingDate();
         var request = new BillingServicePort.CreateInvoiceRequest(
-                contract.customerId(), contract.currency(), lines);
+                contract.customerId(), contract.currency(), lines, idempotencyKey);
 
         return billingService.createInvoice(request);
     }
