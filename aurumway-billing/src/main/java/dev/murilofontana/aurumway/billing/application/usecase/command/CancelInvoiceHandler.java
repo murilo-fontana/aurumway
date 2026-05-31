@@ -24,7 +24,7 @@ public class CancelInvoiceHandler implements CancelInvoiceUseCase {
     @Override
     @Transactional
     public CancelInvoiceResult execute(String invoiceId) {
-        var invoice = repository.findById(new InvoiceId(invoiceId))
+        var invoice = repository.findByIdForUpdate(new InvoiceId(invoiceId))
                 .orElseThrow(() -> new InvoiceNotFoundException(invoiceId));
 
         var wasIssued = invoice.status() != InvoiceStatus.DRAFT;

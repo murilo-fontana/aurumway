@@ -419,5 +419,6 @@ Each module follows the same package structure under `src/main/java/dev/murilofo
 
 Production-readiness items already done: tests, Dockerfiles, dependency health checks, CI, OpenAPI/Swagger, observability (metrics/tracing/correlation IDs), async messaging (RabbitMQ), scheduled jobs (recurring invoices, mark-overdue, outbox relay), rate limiting, resilience (retry / circuit breaker on Stripe and inter-service calls). Planned next:
 
+- [ ] Pagination on list endpoints (`GET /invoices`, `/contracts`, `/statements`) — currently return full result sets
 - [ ] Distributed rate-limit backend (Redis) for multi-replica deployments
 - [ ] Real identity provider (OIDC) to replace the in-memory users

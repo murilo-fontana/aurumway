@@ -1,6 +1,7 @@
 package dev.murilofontana.aurumway.payments.common.money;
 
 import java.math.BigDecimal;
+import java.util.Currency;
 import java.util.Objects;
 
 public record Money(BigDecimal amount, String currency) {
@@ -10,6 +11,11 @@ public record Money(BigDecimal amount, String currency) {
         Objects.requireNonNull(currency, "currency is required");
 
         if (currency.isBlank()) throw new IllegalArgumentException("currency is required");
+        try {
+            Currency.getInstance(currency);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("currency must be a valid ISO 4217 code: " + currency);
+        }
         if (amount.scale() > 2) throw new IllegalArgumentException("amount max scale is 2");
         if (amount.signum() <= 0) throw new IllegalArgumentException("amount must be positive");
     }

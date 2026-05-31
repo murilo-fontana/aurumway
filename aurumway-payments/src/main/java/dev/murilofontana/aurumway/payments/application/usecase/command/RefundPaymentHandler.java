@@ -24,10 +24,17 @@ public class RefundPaymentHandler implements RefundPaymentUseCase {
     @Override
     @Transactional
     public RefundPaymentResult execute(String paymentId, BigDecimal amount, String idempotencyKey) {
-        var payment = repository.findById(new PaymentId(paymentId))
+        var payment = repository.findByIdForUpdate(new PaymentId(paymentId))
                 .orElseThrow(() -> new PaymentNotFoundException(paymentId));
 
         var refundAmount = amount != null ? amount : payment.refundableBalance();
+
+        // Validate against the locked, committed state before calling Stripe so an
+        // invalid refund (wrong status, non-positive amount, or over-refund under a
+        // concurrent race) is rejected cleanly (4xx) instead of surfacing as a gateway
+        // error (502) and wasting a Stripe round-trip.
+        payment.assertRefundable(refundAmount);
+
         var amountInMinorUnits = refundAmount.movePointRight(2).longValueExact();
 
         var stripeResult = stripe.createRefund(

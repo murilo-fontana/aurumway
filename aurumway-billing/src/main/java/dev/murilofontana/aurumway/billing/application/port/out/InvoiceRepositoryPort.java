@@ -14,6 +14,8 @@ public interface InvoiceRepositoryPort {
 
     Optional<Invoice> findById(InvoiceId id);
 
+    Optional<Invoice> findByIdForUpdate(InvoiceId id);
+
     List<Invoice> findWithFilters(String status, String customerId, Instant from, Instant to);
 
     List<Invoice> findOverdueCandidates(LocalDate asOf);

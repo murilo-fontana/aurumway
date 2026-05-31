@@ -50,6 +50,12 @@ public class InvoiceRepositoryAdapter implements InvoiceRepositoryPort {
     }
 
     @Override
+    public Optional<Invoice> findByIdForUpdate(InvoiceId id) {
+        tenantFilter.enableTenantFilter();
+        return jpa.findByInvoiceIdForUpdate(id.value()).map(InvoicePersistenceMapper::toDomain);
+    }
+
+    @Override
     public List<Invoice> findWithFilters(String status, String customerId, Instant from, Instant to) {
         tenantFilter.enableTenantFilter();
         return jpa.findWithFilters(TenantContext.getCurrentTenant(), status, customerId, from, to).stream()

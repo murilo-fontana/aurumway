@@ -1,8 +1,11 @@
 package dev.murilofontana.aurumway.billing.adapter.out.persistence.repository;
 
 import dev.murilofontana.aurumway.billing.adapter.out.persistence.entity.InvoiceEntity;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
@@ -11,6 +14,15 @@ import java.util.Optional;
 public interface JpaInvoiceRepository extends JpaRepository<InvoiceEntity, String> {
 
     Optional<InvoiceEntity> findByInvoiceId(String invoiceId);
+
+    /**
+     * Loads an invoice with a row-level write lock so concurrent state mutations
+     * (refund, pay, ...) on the same invoice serialize instead of racing and
+     * producing lost updates / over-refunds.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select i from InvoiceEntity i where i.invoiceId = :invoiceId")
+    Optional<InvoiceEntity> findByInvoiceIdForUpdate(@Param("invoiceId") String invoiceId);
 
     List<InvoiceEntity> findByStatus(String status);
 

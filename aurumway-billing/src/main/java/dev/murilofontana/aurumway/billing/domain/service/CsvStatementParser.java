@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,13 +57,37 @@ public final class CsvStatementParser {
             throw new IllegalArgumentException("Line %d: expected at least 4 columns, got %d".formatted(lineNum, parts.length));
         }
 
-        var date = LocalDate.parse(parts[0].trim(), DATE_FMT);
-        var amount = new BigDecimal(parts[1].trim());
+        var date = parseDate(parts[0].trim(), lineNum);
+        var amount = parseAmount(parts[1].trim(), lineNum);
         var currency = parts[2].trim().toUpperCase();
-        var type = TransactionType.valueOf(parts[3].trim().toUpperCase());
+        var type = parseType(parts[3].trim().toUpperCase(), lineNum);
         var description = parts.length > 4 ? parts[4].trim() : null;
         var reference = parts.length > 5 ? parts[5].trim() : null;
 
         return BankTransaction.create(date, amount, currency, description, reference, type);
+    }
+
+    private static LocalDate parseDate(String value, int lineNum) {
+        try {
+            return LocalDate.parse(value, DATE_FMT);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("Line %d: invalid date '%s', expected ISO yyyy-MM-dd".formatted(lineNum, value));
+        }
+    }
+
+    private static BigDecimal parseAmount(String value, int lineNum) {
+        try {
+            return new BigDecimal(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Line %d: invalid amount '%s'".formatted(lineNum, value));
+        }
+    }
+
+    private static TransactionType parseType(String value, int lineNum) {
+        try {
+            return TransactionType.valueOf(value);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Line %d: invalid transaction type '%s'".formatted(lineNum, value));
+        }
     }
 }

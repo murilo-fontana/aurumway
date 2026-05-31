@@ -11,6 +11,8 @@ public interface PaymentRepositoryPort {
 
     Optional<Payment> findById(PaymentId id);
 
+    Optional<Payment> findByIdForUpdate(PaymentId id);
+
     Optional<Payment> findByStripePaymentIntentId(String stripePaymentIntentId);
 
     Optional<String> findTenantIdByStripePaymentIntentId(String stripePaymentIntentId);

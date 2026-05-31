@@ -6,6 +6,7 @@ import dev.murilofontana.aurumway.payments.application.port.out.PaymentRepositor
 import dev.murilofontana.aurumway.payments.application.port.out.PaymentSucceededEvent;
 import dev.murilofontana.aurumway.payments.config.TenantContext;
 import dev.murilofontana.aurumway.payments.domain.model.Payment;
+import dev.murilofontana.aurumway.payments.domain.valueobject.PaymentStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +33,13 @@ public class HandleStripeWebhookHandler implements HandleStripeWebhookUseCase {
         var tenantId = repository.findTenantIdByStripePaymentIntentId(paymentIntentId).orElse(null);
         if (tenantId != null) {
             TenantContext.setCurrentTenant(tenantId);
+        }
+
+        // Stripe delivers webhooks at-least-once, so the same event may arrive
+        // more than once. Only the PROCESSING -> terminal transition is meaningful;
+        // a replayed event for an already-settled payment is acknowledged as a no-op.
+        if (payment.status() != PaymentStatus.PROCESSING) {
+            return;
         }
 
         switch (eventType) {

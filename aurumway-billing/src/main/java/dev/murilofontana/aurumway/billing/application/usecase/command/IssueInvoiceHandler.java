@@ -25,7 +25,7 @@ public class IssueInvoiceHandler implements IssueInvoiceUseCase {
     @Override
     @Transactional
     public IssueInvoiceResult execute(String invoiceId, LocalDate dueDate) {
-        var invoice = repository.findById(new InvoiceId(invoiceId))
+        var invoice = repository.findByIdForUpdate(new InvoiceId(invoiceId))
                 .orElseThrow(() -> new InvoiceNotFoundException(invoiceId));
 
         var invoiceNumber = repository.nextInvoiceNumber(LocalDate.now().getYear());

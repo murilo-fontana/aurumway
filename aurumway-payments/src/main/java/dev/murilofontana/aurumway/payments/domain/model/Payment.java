@@ -65,7 +65,11 @@ public final class Payment {
         this.status = PaymentStatus.CANCELLED;
     }
 
-    public void refund(BigDecimal amount) {
+    /**
+     * Validates that a refund of {@code amount} is currently allowed without mutating state,
+     * so callers can reject invalid refunds (wrong status / amount) before invoking the gateway.
+     */
+    public void assertRefundable(BigDecimal amount) {
         if (this.status != PaymentStatus.SUCCEEDED && this.status != PaymentStatus.PARTIALLY_REFUNDED) {
             throw new IllegalStateException("Cannot refund from status: " + this.status);
         }
@@ -73,11 +77,16 @@ public final class Payment {
             throw new IllegalArgumentException("Refund amount must be positive");
         }
         var total = this.money.amount();
-        var newRefundedTotal = this.refundedAmount.add(amount);
-        if (newRefundedTotal.compareTo(total) > 0) {
+        if (this.refundedAmount.add(amount).compareTo(total) > 0) {
             throw new IllegalArgumentException(
                     "Refund amount %s exceeds refundable balance %s".formatted(amount, total.subtract(this.refundedAmount)));
         }
+    }
+
+    public void refund(BigDecimal amount) {
+        assertRefundable(amount);
+        var total = this.money.amount();
+        var newRefundedTotal = this.refundedAmount.add(amount);
         this.refundedAmount = newRefundedTotal;
         this.status = newRefundedTotal.compareTo(total) == 0
                 ? PaymentStatus.REFUNDED

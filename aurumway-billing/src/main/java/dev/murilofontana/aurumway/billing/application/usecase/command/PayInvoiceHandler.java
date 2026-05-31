@@ -23,7 +23,7 @@ public class PayInvoiceHandler implements PayInvoiceUseCase {
     @Override
     @Transactional
     public PayInvoiceResult execute(String invoiceId) {
-        var invoice = repository.findById(new InvoiceId(invoiceId))
+        var invoice = repository.findByIdForUpdate(new InvoiceId(invoiceId))
                 .orElseThrow(() -> new InvoiceNotFoundException(invoiceId));
 
         invoice.markPaid();

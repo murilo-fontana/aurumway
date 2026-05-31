@@ -45,6 +45,12 @@ public class PaymentRepositoryAdapter implements PaymentRepositoryPort {
     }
 
     @Override
+    public Optional<Payment> findByIdForUpdate(PaymentId id) {
+        tenantFilter.enableTenantFilter();
+        return jpa.findByPaymentIdForUpdate(id.value()).map(PaymentPersistenceMapper::toDomain);
+    }
+
+    @Override
     public Optional<Payment> findByStripePaymentIntentId(String stripePaymentIntentId) {
         // No tenant filter - webhooks are cross-tenant
         return jpa.findByStripePaymentIntentId(stripePaymentIntentId)

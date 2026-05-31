@@ -25,7 +25,7 @@ public class RefundInvoiceHandler implements RefundInvoiceUseCase {
     @Override
     @Transactional
     public RefundInvoiceResult execute(String invoiceId, BigDecimal amount, String reason) {
-        var invoice = repository.findById(new InvoiceId(invoiceId))
+        var invoice = repository.findByIdForUpdate(new InvoiceId(invoiceId))
                 .orElseThrow(() -> new InvoiceNotFoundException(invoiceId));
 
         var refundAmount = amount != null ? amount : invoice.refundableBalance();

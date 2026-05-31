@@ -19,7 +19,7 @@ public class SendInvoiceHandler implements SendInvoiceUseCase {
     @Override
     @Transactional
     public SendInvoiceResult execute(String invoiceId) {
-        var invoice = repository.findById(new InvoiceId(invoiceId))
+        var invoice = repository.findByIdForUpdate(new InvoiceId(invoiceId))
                 .orElseThrow(() -> new InvoiceNotFoundException(invoiceId));
 
         invoice.send();
