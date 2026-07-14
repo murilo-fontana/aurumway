@@ -1,3 +1,5 @@
+![Aurumway](docs/assets/aurumway-banner.png)
+
 # Aurumway
 
 B2B billing & payments platform built as three independent **Spring Boot** microservices following **hexagonal / clean architecture**. Each service owns its database, exposes a stateless JWT-secured REST API, is multi-tenant, and keeps an append-only audit trail.
